@@ -17,22 +17,28 @@ class MatchViewModel : ViewModel() {
     fun fetchMatches(date: LocalDate, apiKey: String) {
         viewModelScope.launch {
             try {
+                // Appel corrigé pour utiliser le bon endpoint
                 val response = RetrofitClient.apiService.getLaLigaMatches(
                     dateFrom = date.toString(),
                     dateTo = date.toString(),
                     apiKey = apiKey
                 )
-                println("API response code: ${response.code()}")
-                println("API response body: ${response.body()}")
+
+                println("Réponse API - Code: ${response.code()}, Body: ${response.body()}")
+
                 if (response.isSuccessful) {
                     _matches.clear()
-                    _matches.addAll(response.body()?.matches ?: emptyList())
-                    _error.value = ""
+                    response.body()?.matches?.let { matches ->
+                        _matches.addAll(matches)
+                        _error.value = ""
+                    } ?: run {
+                        _error.value = "Aucun match trouvé"
+                    }
                 } else {
                     _error.value = "Erreur API : ${response.code()}"
                 }
             } catch (e: Exception) {
-                _error.value = "Erreur : ${e.message}"
+                _error.value = "Erreur réseau : ${e.message}"
             }
         }
     }

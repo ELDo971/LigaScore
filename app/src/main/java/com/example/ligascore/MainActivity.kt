@@ -7,33 +7,33 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.lifecycle.viewmodel.compose.viewModel
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import com.example.ligascore.MatchViewModel
-import com.example.ligascore.Match
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.Alignment
-import androidx.compose.material3.*
-import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
-
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import androidx.compose.foundation.clickable
 
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
+            val navController = rememberNavController()
             MaterialTheme(
                 colorScheme = darkColorScheme(
-                    primary = Color(0xFF1976D2), // Un bleu moderne
-                    secondary = Color(0xFF90CAF9), // Bleu clair d'accent
-                    background = Color(0xFF121212), // Fond sombre
+                    primary = Color(0xFF1976D2),
+                    secondary = Color(0xFF90CAF9),
+                    background = Color(0xFF121212),
                     surface = Color(0xFF1E1E1E),
                     onPrimary = Color.White,
                     onSecondary = Color.Black,
@@ -41,7 +41,19 @@ class MainActivity : ComponentActivity() {
                     onSurface = Color.White,
                 )
             ) {
-                HomeScreen()
+                NavHost(navController, startDestination = "home") {
+                    composable("home") {
+                        HomeScreen(
+                            onMatchClick = { matchId ->
+                                navController.navigate("detail/$matchId")
+                            }
+                        )
+                    }
+                    composable("detail/{matchId}") { backStackEntry ->
+                        val matchId = backStackEntry.arguments?.getString("matchId")
+                        MatchDetailScreen(matchId = matchId)
+                    }
+                }
             }
         }
     }
@@ -71,13 +83,13 @@ fun HomeTopAppBar(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(viewModel: MatchViewModel = viewModel()) {
-    // Remplace par ta vraie clé API football-data.org
+fun HomeScreen(
+    onMatchClick: (String) -> Unit,
+    viewModel: MatchViewModel = viewModel()
+) {
     val apiKey = "8bd381eeb7e74616b4ae1712d09bdbaf"
-
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
 
-    // Appel API à chaque changement de date
     LaunchedEffect(selectedDate) {
         viewModel.fetchMatches(selectedDate, apiKey)
     }
@@ -91,10 +103,11 @@ fun HomeScreen(viewModel: MatchViewModel = viewModel()) {
             )
         }
     ) { padding ->
-        Column(modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)) {
-
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
             if (viewModel.error.isNotEmpty()) {
                 Text(
                     text = viewModel.error,
@@ -112,22 +125,25 @@ fun HomeScreen(viewModel: MatchViewModel = viewModel()) {
 
             LazyColumn {
                 items(viewModel.matches) { match ->
-                    MatchItem(match)
+                    MatchItem(match = match, onClick = { onMatchClick(match.id.toString()) })
                 }
             }
         }
     }
 }
 
-
 @Composable
-fun MatchItem(match: Match) {
+fun MatchItem(
+    match: Match,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp, horizontal = 12.dp),
+            .padding(vertical = 6.dp, horizontal = 12.dp)
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF232A34) // Un gris/bleu très sombre
+            containerColor = Color(0xFF232A34)
         ),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
@@ -152,16 +168,32 @@ fun MatchItem(match: Match) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 val hour = try {
                     match.utcDate.substring(11, 16)
-                } catch (e: Exception) { "" }
-                Text(hour, color = Color(0xFF90CAF9)) // Bleu clair
+                } catch (e: Exception) {
+                    ""
+                }
+                Text(hour, color = Color(0xFF90CAF9))
                 match.score?.fullTime?.let {
                     Text(
                         "${it.home ?: "-"} - ${it.away ?: "-"}",
                         style = MaterialTheme.typography.headlineSmall,
-                        color = Color(0xFF1976D2) // Bleu principal
+                        color = Color(0xFF1976D2)
                     )
-                } ?: Text("VS", style = MaterialTheme.typography.headlineSmall, color = Color(0xFF1976D2))
+                } ?: Text(
+                    "VS",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color(0xFF1976D2)
+                )
             }
         }
     }
+}
+
+@Composable
+fun MatchDetailScreen(matchId: String?) {
+    // Implémentez l'écran de détail ici
+    Text(
+        text = "Détails du match ID: $matchId",
+        modifier = Modifier.padding(16.dp),
+        color = Color.White
+    )
 }

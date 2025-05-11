@@ -5,6 +5,7 @@ data class MatchResponse(
 )
 
 data class Match(
+    val id: Long, // Ajoute l'identifiant du match
     val homeTeam: Team,
     val awayTeam: Team,
     val score: Score?,
